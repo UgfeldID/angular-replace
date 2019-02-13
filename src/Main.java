@@ -87,6 +87,7 @@ public class Main {
         Pattern startPattern = Pattern.compile(String.format("<%s\\b", params.tagName));
         Pattern endPattern = Pattern.compile(">");
         AtomicBoolean isReplacementMode = new AtomicBoolean(false);
+        AtomicReference<Integer> endMatcherStartPosition = new AtomicReference<>();
 
         return source.stream().map(line -> {
             String result = line;
@@ -94,11 +95,16 @@ public class Main {
             Matcher startMatcher = startPattern.matcher(line);
             if (startMatcher.find()) {
                 isReplacementMode.set(true);
+                endMatcherStartPosition.set(startMatcher.end() - 1);
             }
 
             if (isReplacementMode.get()) {
 
                 Matcher endMatcher = endPattern.matcher(line);
+                if (endMatcherStartPosition.get() != null
+                        && endMatcherStartPosition.get() <= line.length() - 1) {
+                    endMatcher.region(endMatcherStartPosition.get(), line.length() - 1);
+                }
                 String tail = "";
 
                 if (endMatcher.find()) {
@@ -112,6 +118,7 @@ public class Main {
                 result = replaceOutputParams(result, params.outputParams);
                 result += tail;
 
+                endMatcherStartPosition.set(null);
             }
 
             return replaceTagIfNeeded(params, tagPattern, line, result);
