@@ -102,12 +102,12 @@ public class Main {
 
                 Matcher endMatcher = endPattern.matcher(line);
                 if (endMatcherStartPosition.get() != null
-                        && endMatcherStartPosition.get() <= line.length() - 1) {
-                    endMatcher.region(endMatcherStartPosition.get(), line.length() - 1);
+                        && endMatcherStartPosition.get() <= line.length()) {
+                    endMatcher.region(endMatcherStartPosition.get(), line.length());
                 }
                 String tail = "";
 
-                if (endMatcher.find()) {
+                if (tryFindEnd(endMatcher, line)) {
                     result = line.substring(0, endMatcher.start() + 1);
                     tail = line.substring(endMatcher.end());
                     isReplacementMode.set(false);
@@ -123,6 +123,24 @@ public class Main {
 
             return replaceTagIfNeeded(params, tagPattern, line, result);
         }).collect(Collectors.toList());
+    }
+
+    private static boolean tryFindEnd(Matcher endMatcher, String line) {
+
+        Pattern quotesPattern = Pattern.compile("\"|'");
+        while (endMatcher.find()) {
+            boolean isQuoteInTheBeginning =
+                    quotesPattern.matcher(line.substring(0, endMatcher.start())).find();
+            boolean isQuoteInTheEnd =
+                    quotesPattern.matcher(line.substring(endMatcher.end() - 1, line.length()))
+                            .find();
+            boolean found = !(isQuoteInTheBeginning && isQuoteInTheEnd);
+            if (found)
+                return found;
+
+        }
+
+        return false;
     }
 
     private static String replaceTagIfNeeded(InputParams params, Pattern tagPattern, String line,
